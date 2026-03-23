@@ -7,6 +7,15 @@ interface Message {
   content: string;
 }
 
+const SUGGESTED_QUESTIONS = [
+  "Tell me about yourself",
+  "What is your tech stack?",
+  "Tell me about a technical challenge you faced",
+  "Have you ever disagreed with a colleague?",
+  "What is your greatest achievement?",
+  "Tell me about your leadership experience",
+];
+
 export default function PublicPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -17,20 +26,23 @@ export default function PublicPage() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return;
+  async function sendMessage(overrideInput?: string) {
+    const messageText = overrideInput ?? input;
+    if (!messageText.trim() || loading) return;
 
-    const userMessage: Message = { role: "user", content: input };
+    const userMessage: Message = { role: "user", content: messageText };
     const updatedHistory = [...messages, userMessage];
 
     setMessages(updatedHistory);
     setInput("");
+    setStarted(true);
     setLoading(true);
 
     try {
@@ -38,7 +50,7 @@ export default function PublicPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: input,
+          message: messageText,
           history: updatedHistory,
         }),
       });
@@ -72,11 +84,21 @@ export default function PublicPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
       {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4">
-        <h1 className="text-lg font-semibold">Rene Francisco</h1>
-        <p className="text-sm text-gray-500">
-          Senior Full-Stack Software Engineer
-        </p>
+      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Rene Francisco</h1>
+          <p className="text-sm text-gray-500">
+            Senior Full-Stack Software Engineer
+          </p>
+        </div>
+        <a
+          href="/resume.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm bg-gray-900 hover:bg-gray-700 text-white px-4 py-2 rounded-xl transition-colors"
+        >
+          Download Resume
+        </a>
       </div>
 
       {/* Messages */}
@@ -108,6 +130,23 @@ export default function PublicPage() {
         <div ref={bottomRef} />
       </div>
 
+      {/* Suggested questions -- only show before conversation starts */}
+      {
+        !started && (
+          <div className="px-6 pb-4 flex flex-wrap gap-2">
+            {SUGGESTED_QUESTIONS.map((q) => (
+              <button
+                key={q}
+                onClick={() => sendMessage(q)}
+                className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-full transition-colors"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )
+      }
+
       {/* Input */}
       <div className="border-t border-gray-200 px-6 py-4">
         <div className="flex gap-3 items-end">
@@ -120,7 +159,7 @@ export default function PublicPage() {
             onKeyDown={handleKeyDown}
           />
           <button
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
             className="bg-gray-900 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-5 py-3 rounded-xl text-sm font-medium transition-colors"
           >
@@ -131,6 +170,6 @@ export default function PublicPage() {
           Enter to send, Shift+Enter for new line
         </p>
       </div>
-    </div>
+    </div >
   );
 }

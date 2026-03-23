@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rene-AI
 
-## Getting Started
+A personal AI interview assistant that answers questions about my background, experience, and skills -- as me.
 
-First, run the development server:
+Built with Next.js, OpenAI, and Supabase pgvector. The assistant retrieves relevant context from a private knowledge base using RAG (Retrieval-Augmented Generation) and responds in first person, grounded in real experience.
 
+## Live Demo
+
+[https://rene-ai-orcin.vercel.app](https://rene-ai-orcin.vercel.app)
+
+## How It Works
+
+There are two interfaces:
+
+**Public chat** -- Anyone can visit and ask interview-style questions. The assistant answers as me, drawing only from stored memories. No information is saved from public sessions.
+
+**Admin chat** -- A private, password-protected interface where I feed the assistant information about myself conversationally. It classifies what I tell it, extracts clean memory chunks, embeds them, and stores them in a vector database. I can also correct or clarify existing memories the same way -- just by talking to it.
+
+When a question comes in on the public side, the assistant embeds the question, retrieves the most semantically relevant memories, and generates a grounded first-person response. Session history is maintained so follow-up questions work naturally within the same conversation.
+
+## Tech Stack
+
+- **Frontend** -- React, TypeScript, Tailwind CSS
+- **Framework** -- Next.js (App Router)
+- **LLM + Embeddings** -- OpenAI API (gpt-4o-mini, text-embedding-3-small)
+- **Vector Database** -- Supabase pgvector
+- **Deployment** -- Vercel
+
+## Features
+
+- RAG pipeline over a self-curated personal knowledge base
+- Dual-interface architecture: public read-only chat and private admin chat
+- Conversational memory ingestion -- no forms or manual database editing
+- Automatic chunking, prefixing, and embedding of new information
+- Session-aware public chat with follow-up question support
+- Password-protected admin route enforced at the API level
+
+## Running Locally
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/rene-ai.git
+cd rene-ai
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a `.env.local` file in the project root:
+```bash
+OPENAI_API_KEY=your_openai_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+ADMIN_PASSWORD=your_admin_password
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Set up the Supabase database:
+```sql
+create extension if not exists vector;
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+create table memories (
+  id uuid primary key default gen_random_uuid(),
+  content text not null,
+  embedding vector(1536),
+  category text,
+  created_at timestamp with time zone default now()
+);
 
-## Learn More
+create index on memories
+using ivfflat (embedding vector_cosine_ops)
+with (lists = 100);
 
-To learn more about Next.js, take a look at the following resources:
+create or replace function match_memories(
+  query_embedding text,
+  match_threshold float,
+  match_count int
+)
+returns table(
+  id uuid,
+  content text,
+  category text,
+  similarity float
+)
+language sql stable
+as $$
+  select
+    id,
+    content,
+    category,
+    1 - (embedding <=> query_embedding::vector) as similarity
+  from memories
+  where 1 - (embedding <=> query_embedding::vector) > match_threshold
+  order by similarity desc
+  limit match_count;
+$$;
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Then run:
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `http://localhost:3000` -- public chat
+- `http://localhost:3000/admin` -- admin chat
