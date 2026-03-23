@@ -104,18 +104,35 @@ export default function PublicPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+          <div key={i}>
             <div
-              className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.role === "user"
-                ? "bg-gray-900 text-white"
-                : "bg-gray-100 text-gray-900"
-                }`}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {msg.content}
+              <div
+                className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.role === "user"
+                  ? "bg-gray-900 text-white"
+                  : "bg-gray-100 text-gray-900"
+                  }`}
+              >
+                {msg.content}
+              </div>
             </div>
+
+            {/* Suggested questions attached to first message */}
+            {i === 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {SUGGESTED_QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => sendMessage(q)}
+                    disabled={loading}
+                    className="text-sm border border-gray-300 hover:border-gray-900 hover:bg-gray-900 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 bg-white px-4 py-2 rounded-full transition-all duration-150 cursor-pointer shadow-sm"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
 
@@ -129,23 +146,6 @@ export default function PublicPage() {
 
         <div ref={bottomRef} />
       </div>
-
-      {/* Suggested questions -- only show before conversation starts */}
-      {
-        !started && (
-          <div className="px-6 pb-4 flex flex-wrap gap-2">
-            {SUGGESTED_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                onClick={() => sendMessage(q)}
-                className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-full transition-colors"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        )
-      }
 
       {/* Input */}
       <div className="border-t border-gray-200 px-6 py-4">
