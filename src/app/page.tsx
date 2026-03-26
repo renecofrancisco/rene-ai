@@ -26,8 +26,8 @@ export default function PublicPage() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [started, setStarted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const suggestedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -42,7 +42,6 @@ export default function PublicPage() {
 
     setMessages(updatedHistory);
     setInput("");
-    setStarted(true);
     setLoading(true);
 
     try {
@@ -120,7 +119,7 @@ export default function PublicPage() {
 
             {/* Suggested questions attached to first message */}
             {i === 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div ref={suggestedRef} className="flex flex-wrap gap-2 mt-3">
                 {SUGGESTED_QUESTIONS.map((q) => (
                   <button
                     key={q}
@@ -141,6 +140,21 @@ export default function PublicPage() {
             <div className="bg-gray-100 px-4 py-3 rounded-2xl text-sm text-gray-400">
               Thinking...
             </div>
+          </div>
+        )}
+
+        {/* Scroll to suggested questions -- appears after conversation starts */}
+        {messages.length > 1 && (
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() =>
+                suggestedRef.current?.scrollIntoView({ behavior: "smooth" })
+              }
+              className="w-8 h-8 rounded-full border border-gray-200 hover:border-gray-400 bg-white hover:bg-gray-50 text-gray-400 hover:text-gray-700 flex items-center justify-center shadow-sm transition-all duration-150"
+              aria-label="Scroll to suggested questions"
+            >
+              ↑
+            </button>
           </div>
         )}
 
